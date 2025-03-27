@@ -33,6 +33,9 @@ build-backend = "setuptools.build_meta"
 package-dir = { "" = "src" }
 packages = ["llm_git"]
 
+[tool.setuptools.package-data]
+"llm_git" = ["*.yaml", "config.yaml"]
+
 # Minimal Ruff configuration
 [tool.ruff]
 line-length = 88
