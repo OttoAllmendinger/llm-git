@@ -57,7 +57,7 @@ def commit_command(no_edit, amend, model, add_metadata=None):
         # Get the metadata format and fill in the model_id
         metadata_format = commit_config.get(
             "metadata_format", 
-            "Co-Authored-By: llm-git <llm-git@ttll.de>"
+            "Co-authored-by: llm-git <llm-git@ttll.de>"
         )
         model_name = model or "default"
         metadata = metadata_format.format(model_id=model_name)
