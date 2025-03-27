@@ -46,8 +46,8 @@ llm git apply "fix the bugs in this code"
 - `llm git [--model MODEL] commit [--no-edit] [--amend]` - Generate commit message and commit changes
 - `llm git [--model MODEL] create-branch [COMMIT_SPEC] [--preview]` - Generate branch name from commits and create it
 - `llm git [--model MODEL] describe-staged` - Describe staged changes with suggestions
-- `llm git [--model MODEL] apply INSTRUCTIONS [--cached]` - Generate changes based on instructions
-- `llm git [--model MODEL] add` - Generate and stage fixes
+- `llm git [--model MODEL] apply INSTRUCTIONS [--cached]` - [BETA] Generate changes based on instructions (not fully functional yet)
+- `llm git [--model MODEL] add` - [BETA] Generate and stage fixes (not fully functional yet)
 - `llm git dump-prompts` - Display all available prompts
 
 ### GitHub Commands

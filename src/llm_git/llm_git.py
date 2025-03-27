@@ -46,14 +46,14 @@ def register_commands(cli):
     )
     @click.pass_context
     def apply(ctx, instructions, cached):
-        """Generate changes based on instructions"""
+        """[BETA] Generate changes based on instructions (not fully functional yet)"""
         model = ctx.obj.get("model")
         apply_command(instructions, cached, model)
 
     @git_group.command(name="add")
     @click.pass_context
     def add(ctx):
-        """Generate and stage fixes for your code"""
+        """[BETA] Generate and stage fixes for your code (not fully functional yet)"""
         model = ctx.obj.get("model")
         add_command(model)
 
