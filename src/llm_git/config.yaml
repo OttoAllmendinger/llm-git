@@ -165,37 +165,31 @@ prompts:
     ## Context
     You are being called during an interactive rebase to improve the rebase plan.
     
+    ## Rewrite commit messages
+    
+    Use the instruction
+    ```
+    exec llm git commit --amend [--extend-prompt "INSTRUCTIONS"]
+    ```
+    to rewrite commit messages.
+    
     ## Requirements
     - Analyze the rebase plan and commit details
     - Look for opportunities to:
-      - Squash related commits
-      - Reword unclear commit messages
+      - Squash related commits.
       - Reorder commits logically
-      - Fix typos in commit messages
       - Drop unnecessary commits
+      - Make sure to avoid conflicts. Be conservative.
+    - Unless you want to leave a commit message exactly as it is, use the `exec` command to rewrite it.
     - Return ONLY the improved rebase plan, nothing else
     - Maintain the same format as the original plan
-    - Each line must start with a command (pick, reword, squash, etc.) followed by the commit hash
+    - Each line must start with a command (pick, reword, squash, exec, etc.) followed by the commit hash
     - Do not change the commit hashes
-    - Comments (lines starting with #) should be preserved or improved
+    - Omit the standard instructions that are commented out.
     
     ## Output
     Return only the improved rebase plan, maintaining the exact format required by Git.
 
-  edit_rebase_todo: |
-    {prompt[improve_rebase_plan]}
-    
-    ## Input
-    Rebase plan:
-    ```
-    {rebase_plan}
-    ```
-    
-    Commit details:
-    ```
-    {commit_details}
-    ```
-    
   rebase_input: |
     Rebase plan:
     ```

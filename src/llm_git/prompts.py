@@ -263,10 +263,6 @@ class PromptFactory:
         """Generate an improved rebase plan."""
         return PromptTemplate("improve_rebase_plan", self)
         
-    def edit_rebase_todo(self) -> PromptTemplate:
-        """Generate a prompt for editing a rebase todo file."""
-        return PromptTemplate("edit_rebase_todo", self)
-        
     def rebase_input(self) -> PromptTemplate:
         """Generate a prompt with rebase input data."""
         return PromptTemplate("rebase_input", self)
