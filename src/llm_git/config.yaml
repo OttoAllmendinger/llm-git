@@ -179,8 +179,8 @@ prompts:
     - Look for opportunities to:
       - Squash related commits.
       - Reorder commits logically
-      - Drop unnecessary commits
       - Make sure to avoid conflicts. Be conservative.
+    - Be hesitant to drop any commits. When dropping a commit, add a comment explaining why.
     - Unless you want to leave a commit message exactly as it is, use the `exec` command to rewrite it.
     - Return ONLY the improved rebase plan, nothing else
     - Maintain the same format as the original plan
