@@ -18,7 +18,7 @@ from .file_helpers import (
     edit_with_editor,
 )
 from .llm_utils import LLMRequest
-from .terminal_format import console, highlight_code, highlight_diff
+from .terminal_format import console, markdown, syntax
 from .config import merged_config
 from .commit_utils import extend_with_metadata
 
@@ -60,7 +60,7 @@ def commit_command(no_edit, amend, model, add_metadata=None, extend_prompt=None,
         system_prompt=system_prompt,
         model_id=model,
         stream=True,
-        output_type="markdown"
+        formatter=markdown()
     )
     
     result = request.execute()
@@ -101,7 +101,7 @@ def _apply(model, input_text, prompt_text, cached=False, output_type="diff"):
         system_prompt=prompt_text,
         model_id=model,
         stream=True,
-        output_type=output_type
+        formatter=syntax("diff") if output_type == "diff" else markdown()
     )
     request.with_retry(apply_patch)
 
@@ -147,7 +147,7 @@ def create_branch_command(commit_spec, preview, model, extend_prompt=None):
         system_prompt=prompts.branch_name().extend(extend_prompt).format(),
         model_id=model,
         stream=True,
-        output_type="markdown"
+        formatter=markdown()
     )
     result = request.execute()
     branch_name_result = str(result).strip()
@@ -164,7 +164,7 @@ def describe_staged_command(model, extend_prompt=None):
 
     # Display the diff with syntax highlighting first
     console.print("Staged changes:", style="bold green")
-    console.print(highlight_diff(diff))
+    console.print(syntax("diff").render(diff))
     console.print("\nAnalyzing changes...\n", style="bold yellow")
 
     # Then run the LLM with formatted output
@@ -173,7 +173,7 @@ def describe_staged_command(model, extend_prompt=None):
         system_prompt=prompts.describe_staged().extend(extend_prompt).format(),
         model_id=model,
         stream=True,
-        output_type="markdown"
+        formatter=markdown()
     )
     request.execute()
 
@@ -211,7 +211,7 @@ def dump_prompts_command():
             result = method().format()
 
             # Display the formatted prompt
-            console.print(highlight_code(result, "markdown"))
+            console.print(syntax("markdown", line_numbers=False).render(result))
         except Exception:
             # console.print(f"[red]Error rendering prompt: {str(e)}[/red]")
             # print with stack trace
@@ -233,7 +233,7 @@ def create_pr_command(upstream, no_edit, model, extend_prompt=None):
         system_prompt=prompts.pr_description().extend(extend_prompt).format(),
         model_id=model,
         stream=True,
-        output_type="markdown"
+        formatter=markdown()
     )
     result = request.execute()
     pr_desc = str(result)

@@ -1,8 +1,15 @@
 terminal:
+  # Theme for syntax highlighting
   theme: "monokai"
+  # Style for markdown rendering
   markdown_style: "default"
-  width: null
+  # Width for syntax highlighted content (null means use full terminal width)
+  syntax_width: null
+  # Width for markdown content like commit messages
+  markdown_width: 72
+  # Color system for terminal output
   color_system: "auto"
+  # Whether to use syntax highlighting
   highlight: true
 
 prompts:

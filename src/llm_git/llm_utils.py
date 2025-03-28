@@ -5,7 +5,7 @@ from typing import Any, Callable, List, Optional, TypeVar
 import click
 import llm
 
-from .terminal_format import console, stream_with_highlighting
+from .terminal_format import console, stream_with_highlighting, markdown
 
 T = TypeVar('T')
 
@@ -19,13 +19,14 @@ class LLMRequest:
         system_prompt: The system prompt to set context for the model
         model_id: Optional model identifier, uses default if None
         stream: Whether to stream the response
-        output_type: Format type for output highlighting ("markdown", "diff", "code")
+        formatter: Formatter to use for output rendering
+                  Examples: markdown(), syntax("python"), syntax("diff")
     """
     prompt: str
     system_prompt: str
     model_id: Optional[str] = None
     stream: bool = True
-    output_type: str = "markdown"
+    formatter: Any = None
 
     def execute(self) -> Any:
         """
@@ -41,6 +42,9 @@ class LLMRequest:
 
         if not self.prompt:
             raise click.ClickException("Prompt is empty")
+            
+        # Use default markdown formatter if none provided
+        formatter = self.formatter if self.formatter is not None else markdown()
 
         model_id = self.model_id or get_default_model()
         model = llm.get_model(model_id)
@@ -60,11 +64,11 @@ class LLMRequest:
         try:
             result = model.prompt(self.prompt, system=self.system_prompt, stream=self.stream)
             if self.stream:
-                # Use the streaming formatter with highlighting by default
+                # Use the streaming formatter with the provided formatter
                 def stream_generator():
                     for chunk in result:
                         yield str(chunk)
-                stream_with_highlighting(stream_generator(), format_type=self.output_type)
+                stream_with_highlighting(stream_generator(), formatter=formatter)
             return result
         except Exception as e:
             console.print(f"prompt={self.prompt}", style="bold red")
@@ -106,27 +110,3 @@ class LLMRequest:
                 self.prompt = original_prompt
         
         raise click.ClickException(f"Failed after {retries} retries") from errors[-1]
-
-    @classmethod
-    def create(cls, prompt: str, system_prompt: str, model_id: Optional[str] = None, 
-               stream: bool = True, output_type: str = "markdown") -> "LLMRequest":
-        """
-        Create a new LLMRequest instance.
-        
-        Args:
-            prompt: The main prompt text
-            system_prompt: The system prompt
-            model_id: Optional model identifier
-            stream: Whether to stream the response
-            output_type: Format type for output highlighting
-            
-        Returns:
-            A new LLMRequest instance
-        """
-        return cls(
-            prompt=prompt, 
-            system_prompt=system_prompt, 
-            model_id=model_id, 
-            stream=stream,
-            output_type=output_type
-        )
