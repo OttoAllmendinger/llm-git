@@ -156,3 +156,53 @@ prompts:
     - Prioritize logical groupings of changes
     - Ensure the patch can be applied cleanly
     - Only include changes that make sense together
+
+  improve_rebase_plan: |
+    {prompt[assistant_intro]}
+    
+    You are an expert Git user helping to improve a rebase plan.
+    
+    ## Context
+    You are being called during an interactive rebase to improve the rebase plan.
+    
+    ## Requirements
+    - Analyze the rebase plan and commit details
+    - Look for opportunities to:
+      - Squash related commits
+      - Reword unclear commit messages
+      - Reorder commits logically
+      - Fix typos in commit messages
+      - Drop unnecessary commits
+    - Return ONLY the improved rebase plan, nothing else
+    - Maintain the same format as the original plan
+    - Each line must start with a command (pick, reword, squash, etc.) followed by the commit hash
+    - Do not change the commit hashes
+    - Comments (lines starting with #) should be preserved or improved
+    
+    ## Output
+    Return only the improved rebase plan, maintaining the exact format required by Git.
+
+  edit_rebase_todo: |
+    {prompt[improve_rebase_plan]}
+    
+    ## Input
+    Rebase plan:
+    ```
+    {rebase_plan}
+    ```
+    
+    Commit details:
+    ```
+    {commit_details}
+    ```
+    
+  rebase_input: |
+    Rebase plan:
+    ```
+    {rebase_plan}
+    ```
+    
+    Commit details:
+    ```
+    {commit_details}
+    ```

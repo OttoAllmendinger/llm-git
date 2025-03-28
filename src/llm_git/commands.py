@@ -82,6 +82,95 @@ def commit_command(no_edit, amend, model, add_metadata=None, extend_prompt=None,
         git_interactive(cmd)
 
 
+def rebase_command(upstream, no_edit, model, extend_prompt=None):
+    """
+    Rebase the current branch onto the upstream branch with LLM assistance
+    """
+    import os
+    import subprocess
+    import sys
+    
+    if upstream is None:
+        upstream = get_origin_default_branch()
+    
+    # Get the path to the llm-git executable
+    llm_git_path = sys.argv[0]
+    
+    # Set the GIT_SEQUENCE_EDITOR environment variable to use our command
+    env = os.environ.copy()
+    env["GIT_SEQUENCE_EDITOR"] = f"{llm_git_path} git edit-rebase-todo"
+    
+    if model:
+        env["GIT_SEQUENCE_EDITOR"] += f" --model {model}"
+    
+    if extend_prompt:
+        env["GIT_SEQUENCE_EDITOR"] += f" --extend-prompt '{extend_prompt}'"
+    
+    if no_edit:
+        env["GIT_SEQUENCE_EDITOR"] += " --no-edit"
+    
+    try:
+        # Run git rebase with our custom editor
+        subprocess.run(["git", "rebase", "-i", upstream], env=env, check=True)
+    except subprocess.CalledProcessError:
+        click.echo("Rebase failed. Resolve conflicts and continue with 'git rebase --continue'")
+
+
+def edit_rebase_todo_command(rebase_todo_path, no_edit, model, extend_prompt=None):
+    """
+    Edit a git rebase-todo file using the LLM
+    """
+    from llm.utils import extract_fenced_code_block
+    import os
+    import subprocess
+    
+    # Read the rebase-todo file
+    with open(rebase_todo_path, 'r') as f:
+        rebase_todo = f.read()
+    
+    # Get the commit history for context
+    # Extract the commit hashes from the rebase-todo
+    import re
+    commit_hashes = re.findall(r'^\w+\s+([a-f0-9]+)', rebase_todo, re.MULTILINE)
+    
+    # Get the commit details for context
+    commit_details = ""
+    for commit_hash in commit_hashes:
+        commit_details += git_output(["show", "--format=fuller", commit_hash]) + "\n\n"
+    
+    # Format the input data using the template
+    input_data = {
+        "rebase_plan": rebase_todo,
+        "commit_details": commit_details
+    }
+    
+    # Call the LLM to improve the rebase plan using templates from config
+    request = LLMRequest(
+        prompt=prompts.rebase_input().format(input_data),  # Input data formatted with template
+        system_prompt=prompts.improve_rebase_plan().extend(extend_prompt).format(),  # Instructions from template
+        model_id=model,
+        stream=True,
+        formatter=syntax("git")
+    )
+    
+    result = request.execute()
+    improved_plan = str(result)
+    
+    # Extract the improved rebase plan from the LLM response
+    # The LLM might wrap the plan in markdown code blocks, so we need to extract it
+    improved_plan = extract_fenced_code_block(improved_plan) or improved_plan
+    
+    # Write the improved plan back to the file
+    with open(rebase_todo_path, 'w') as f:
+        f.write(improved_plan)
+    
+    # If no_edit is False, open the editor for manual review
+    if not no_edit:
+        # Use the user's preferred editor
+        editor = os.environ.get('EDITOR', 'vim')
+        subprocess.run([editor, rebase_todo_path])
+
+
 def _apply(model, input_text, prompt_text, cached=False, output_type="diff"):
     def apply_patch(input):
         patch = extract_fenced_code_block(input, last=True)

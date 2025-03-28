@@ -15,7 +15,9 @@ from .commands import (
     create_branch_command,
     describe_staged_command,
     dump_prompts_command,
-    create_pr_command,
+    create_pr_command, 
+    rebase_command,
+    edit_rebase_todo_command,
 )
 
 
@@ -47,6 +49,26 @@ def register_commands(cli):
         """Generate commit message and commit changes"""
         model = ctx.obj.get("model")
         commit_command(no_edit, amend, model, add_metadata, extend_prompt, include_prompt)
+
+    @git_group.command()
+    @upstream_option
+    @no_edit_option
+    @extend_prompt_option
+    @click.pass_context
+    def rebase(ctx, upstream, no_edit, extend_prompt):
+        """Rebase the current branch onto the upstream branch with LLM assistance"""
+        model = ctx.obj.get("model")
+        rebase_command(upstream, no_edit, model, extend_prompt)
+
+    @git_group.command(name="edit-rebase-todo")
+    @click.argument("rebase_todo_path", type=click.Path(exists=True))
+    @no_edit_option
+    @extend_prompt_option
+    @click.pass_context
+    def edit_rebase_todo(ctx, rebase_todo_path, no_edit, extend_prompt):
+        """Edit a git rebase-todo file using the LLM"""
+        model = ctx.obj.get("model")
+        edit_rebase_todo_command(rebase_todo_path, no_edit, model, extend_prompt)
 
     @git_group.command()
     @click.argument("instructions")
