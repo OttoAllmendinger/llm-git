@@ -7,7 +7,7 @@ from .prompts import prompts
 from .git_helpers import (
     git_output,
     get_diff,
-    get_staged_diff,
+    get_diff_for_commit_message,
     build_commit_args,
     git_interactive,
     get_origin_default_branch,
@@ -20,32 +20,15 @@ from .file_helpers import (
 from .llm_utils import LLMRequest
 from .terminal_format import console, highlight_code, highlight_diff
 from .config import merged_config
+from .commit_utils import extend_with_metadata
 
 
-LLM_GIT_URL = "https://github.com/OttoAllmendinger/llm-git"
-
-def commit_command(no_edit, amend, model, add_metadata=None):
+def commit_command(no_edit, amend, model, add_metadata=None, extend_prompt=None):
     """Generate commit message and commit changes"""
-    diff = get_staged_diff() if not amend else ""
-
-    if amend:
-        # For amend, use the current commit message as input
-        current_msg = git_output(["show", "--format=%B", "-s"])
-        input_text = current_msg
-    else:
-        # For new commit, use the diff as input and get previous commit message
-        input_text = diff
-
-    request = LLMRequest(
-        prompt=input_text,
-        system_prompt=prompts.commit_message(),
-        model_id=model,
-        stream=True,
-        output_type="markdown"
-    )
-    result = request.execute()
-    msg = str(result)
-
+    
+    # Get the appropriate diff for the commit message
+    diff = get_diff_for_commit_message(amend=amend)
+    
     # Check if we should add metadata
     config = merged_config()
     commit_config = config.get("commit", {})
@@ -53,24 +36,35 @@ def commit_command(no_edit, amend, model, add_metadata=None):
     # Command-line option overrides config if provided
     should_add_metadata = add_metadata if add_metadata is not None else commit_config.get("add_metadata", True)
     
-    if should_add_metadata:
-        # Get the metadata format and fill in the model_id
-        metadata_format = commit_config.get(
-            "metadata_format", 
-            "Co-authored-by: llm-git <llm-git@ttll.de>"
-        )
-        model_name = model or "default"
-        metadata = metadata_format.format(model_id=model_name)
-        
-        # Add the metadata as a trailer if it's not already there
-        if metadata not in msg:
-            # Make sure there's a blank line before the trailer
-            if not msg.endswith("\n\n"):
-                if msg.endswith("\n"):
-                    msg += "\n"
-                else:
-                    msg += "\n\n"
-            msg += metadata
+    # Select the appropriate prompt template and format args based on whether we're amending
+    format_args = {}
+    if amend:
+        # Get the current commit message for amend
+        current_msg = git_output(["show", "--format=%B", "-s"])
+        prompt_template = prompts.commit_message_amend()
+        format_args["previous_message"] = current_msg
+    else:
+        prompt_template = prompts.commit_message()
+    
+    # Apply extensions and metadata in a single call
+    system_prompt = extend_with_metadata(
+        prompt_template,
+        extend_prompt,
+        should_add_metadata,
+        format_args
+    )
+    
+    # Create a single request with the appropriate system prompt
+    request = LLMRequest(
+        prompt=diff,
+        system_prompt=system_prompt,
+        model_id=model,
+        stream=True,
+        output_type="markdown"
+    )
+    
+    result = request.execute()
+    msg = str(result)
 
     with temp_file_with_content(msg) as file_path:
         cmd = build_commit_args(
@@ -103,7 +97,7 @@ def _apply(model, input_text, prompt_text, cached=False, output_type="diff"):
     request.with_retry(apply_patch)
 
 
-def apply_command(instructions, cached, model):
+def apply_command(instructions, cached, model, extend_prompt=None):
     if sys.stdin.isatty():
         input_text = get_diff()
     else:
@@ -112,18 +106,24 @@ def apply_command(instructions, cached, model):
     _apply(
         model,
         input_text,
-        prompts.apply_patch_custom_instructions(instructions=instructions),
+        prompts.apply_patch_custom_instructions().extend(extend_prompt).format({"instructions": instructions}),
         cached,
         output_type="diff"
     )
 
 
-def add_command(model):
+def add_command(model, extend_prompt=None):
     # Use the apply_patch_minimal prompt directly
-    _apply(model, get_diff(), prompts.apply_patch_minimal(), True, output_type="diff")
+    _apply(
+        model, 
+        get_diff(), 
+        prompts.apply_patch_minimal().extend(extend_prompt).format(), 
+        True, 
+        output_type="diff"
+    )
 
 
-def create_branch_command(commit_spec, preview, model):
+def create_branch_command(commit_spec, preview, model, extend_prompt=None):
     """Generate branch name from commits and optionally create it"""
     if commit_spec is None:
         commit_spec = get_merge_base(get_origin_default_branch(), "HEAD") + "..HEAD"
@@ -135,7 +135,7 @@ def create_branch_command(commit_spec, preview, model):
 
     request = LLMRequest(
         prompt=log,
-        system_prompt=prompts.branch_name(),
+        system_prompt=prompts.branch_name().extend(extend_prompt).format(),
         model_id=model,
         stream=True,
         output_type="markdown"
@@ -149,9 +149,9 @@ def create_branch_command(commit_spec, preview, model):
         click.echo(branch_name_result)
 
 
-def describe_staged_command(model):
+def describe_staged_command(model, extend_prompt=None):
     """Describe staged changes and suggest commit splits with syntax highlighting"""
-    diff = get_staged_diff()
+    diff = get_diff(staged=True)
 
     # Display the diff with syntax highlighting first
     console.print("Staged changes:", style="bold green")
@@ -161,7 +161,7 @@ def describe_staged_command(model):
     # Then run the LLM with formatted output
     request = LLMRequest(
         prompt=diff,
-        system_prompt=prompts.describe_staged(),
+        system_prompt=prompts.describe_staged().extend(extend_prompt).format(),
         model_id=model,
         stream=True,
         output_type="markdown"
@@ -199,7 +199,7 @@ def dump_prompts_command():
             method = getattr(prompts, method_name)
 
             # Call the method with empty kwargs
-            result = method()
+            result = method().format()
 
             # Display the formatted prompt
             console.print(highlight_code(result, "markdown"))
@@ -209,7 +209,7 @@ def dump_prompts_command():
             console.print_exception()
 
 
-def create_pr_command(upstream, no_edit, model):
+def create_pr_command(upstream, no_edit, model, extend_prompt=None):
     """Generate PR description from commits"""
     if upstream is None:
         upstream = get_origin_default_branch()
@@ -221,7 +221,7 @@ def create_pr_command(upstream, no_edit, model):
 
     request = LLMRequest(
         prompt=log,
-        system_prompt=prompts.pr_description(),
+        system_prompt=prompts.pr_description().extend(extend_prompt).format(),
         model_id=model,
         stream=True,
         output_type="markdown"

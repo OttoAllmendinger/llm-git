@@ -78,6 +78,89 @@ def _get_default_variables() -> Dict[str, str]:
     return {"pwd": os.getcwd(), "branch": git_output(["branch", "--show-current"])}
 
 
+class PromptTemplate:
+    """
+    A template for a prompt that can be formatted with arguments.
+    """
+    def __init__(self, prompt_id: str, factory: 'PromptFactory'):
+        """
+        Initialize a prompt template.
+        
+        Args:
+            prompt_id: ID of the prompt in the template data
+            factory: The PromptFactory that created this template
+        """
+        self.prompt_id = prompt_id
+        self.factory = factory
+    
+    def extend(self, extend_prompt: Optional[str] = None) -> 'PromptTemplate':
+        """
+        Extend the prompt template with additional instructions.
+        
+        Args:
+            extend_prompt: Additional instructions to extend the prompt
+            
+        Returns:
+            A new prompt template with extended instructions or self if no extension
+        """
+        if not extend_prompt:
+            return self
+            
+        # Create an ExtendedPromptTemplate that will apply the extension when formatted
+        return ExtendedPromptTemplate(self.prompt_id, self.factory, extend_prompt)
+        
+    def format(self, template_args: Dict[str, str] = None) -> str:
+        """
+        Format this prompt template with the given arguments.
+        
+        Args:
+            template_args: Dictionary of arguments to format the template with
+            
+        Returns:
+            Formatted prompt string
+        """
+        template_args = template_args or {}
+        return self.factory._eval_prompt_template(self.prompt_id, template_args)
+
+
+class ExtendedPromptTemplate(PromptTemplate):
+    """
+    A prompt template that has been extended with additional instructions.
+    """
+    def __init__(self, prompt_id: str, factory: 'PromptFactory', extend_prompt: str):
+        """
+        Initialize an extended prompt template.
+        
+        Args:
+            prompt_id: ID of the prompt in the template data
+            factory: The PromptFactory that created this template
+            extend_prompt: Additional instructions to extend the prompt
+        """
+        super().__init__(prompt_id, factory)
+        self.extend_prompt = extend_prompt
+        
+    def format(self, template_args: Dict[str, str] = None) -> str:
+        """
+        Format this prompt template with the given arguments and apply extension.
+        
+        Args:
+            template_args: Dictionary of arguments to format the template with
+            
+        Returns:
+            Formatted prompt string with extension applied
+        """
+        template_args = template_args or {}
+        
+        # Format the original prompt first
+        old_prompt = self.factory._eval_prompt_template(self.prompt_id, template_args)
+        
+        # Then use it with the extend_prompt template
+        return self.factory._eval_prompt_template("extend_prompt", {
+            "old_prompt": old_prompt,
+            "add_prompt": self.extend_prompt
+        })
+
+
 # Create factory functions for prompts that return plain strings
 class PromptFactory:
     def __init__(
@@ -107,13 +190,13 @@ class PromptFactory:
         configs = [config.global_config, config.user_config, config.repo_config]
         return [c.get("prompts", {}) for c in configs]
 
-    def _eval_prompt_template(self, prompt_id: str, kwargs: Dict[str, Any]) -> str:
+    def _eval_prompt_template(self, prompt_id: str, template_args: Dict[str, str]) -> str:
         """
         Evaluate a prompt template with the given parameters.
 
         Args:
             prompt_id: ID of the prompt to evaluate
-            kwargs: Parameters to format the prompt with
+            template_args: Parameters to format the prompt with
 
         Returns:
             Formatted prompt string
@@ -124,11 +207,11 @@ class PromptFactory:
         # Add default variables if not already provided
         default_vars = _get_default_variables()
         for key, value in default_vars.items():
-            if key not in kwargs:
-                kwargs[key] = value
+            if key not in template_args:
+                template_args[key] = value
 
         formatted_prompts = apply_format(
-            self.template_data, formatter=self.formatter, **kwargs
+            self.template_data, formatter=self.formatter, **template_args
         )
 
         # Return the requested prompt
@@ -136,37 +219,45 @@ class PromptFactory:
             return f"<KeyError prompt[{prompt_id}]>"
         return formatted_prompts[prompt_id]
 
-    def commit_message(self, **kwargs: Any) -> str:
+    def commit_message(self) -> PromptTemplate:
         """Generate a commit message based on provided parameters."""
-        return self._eval_prompt_template("commit_message", kwargs)
+        return PromptTemplate("commit_message", self)
 
-    def branch_name(self, **kwargs: Any) -> str:
+    def commit_message_amend(self) -> PromptTemplate:
+        """Generate a commit message for amending an existing commit."""
+        return PromptTemplate("commit_message_amend", self)
+
+    def branch_name(self) -> PromptTemplate:
         """Generate a branch name based on provided parameters."""
-        return self._eval_prompt_template("branch_name", kwargs)
+        return PromptTemplate("branch_name", self)
 
-    def pr_description(self, **kwargs: Any) -> str:
+    def pr_description(self) -> PromptTemplate:
         """Generate a PR description based on provided parameters."""
-        return self._eval_prompt_template("pr_description", kwargs)
+        return PromptTemplate("pr_description", self)
 
-    def describe_staged(self, **kwargs: Any) -> str:
+    def describe_staged(self) -> PromptTemplate:
         """Generate a description of staged changes."""
-        return self._eval_prompt_template("describe_staged", kwargs)
+        return PromptTemplate("describe_staged", self)
 
-    def split_diff(self, **kwargs: Any) -> str:
+    def split_diff(self) -> PromptTemplate:
         """Generate instructions to split a diff into multiple commits."""
-        return self._eval_prompt_template("split_diff", kwargs)
+        return PromptTemplate("split_diff", self)
 
-    def apply_patch_base(self, **kwargs: Any) -> str:
+    def apply_patch_base(self) -> PromptTemplate:
         """Generate base instructions for applying a patch."""
-        return self._eval_prompt_template("apply_patch_base", kwargs)
+        return PromptTemplate("apply_patch_base", self)
 
-    def apply_patch_custom_instructions(self, **kwargs: Any) -> str:
+    def apply_patch_custom_instructions(self) -> PromptTemplate:
         """Generate custom instructions for applying a patch."""
-        return self._eval_prompt_template("apply_patch_custom_instructions", kwargs)
+        return PromptTemplate("apply_patch_custom_instructions", self)
 
-    def apply_patch_minimal(self, **kwargs: Any) -> str:
+    def apply_patch_minimal(self) -> PromptTemplate:
         """Generate minimal instructions for applying a patch."""
-        return self._eval_prompt_template("apply_patch_minimal", kwargs)
+        return PromptTemplate("apply_patch_minimal", self)
+        
+    def extend_prompt_commit_metadata(self) -> PromptTemplate:
+        """Extend a prompt with commit metadata."""
+        return PromptTemplate("extend_prompt_commit_metadata", self)
 
 
 # Create a singleton instance for backward compatibility

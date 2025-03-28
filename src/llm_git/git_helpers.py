@@ -47,12 +47,22 @@ def get_merge_base(branch1, branch2):
     return git_output(["merge-base", branch1, branch2])
 
 
-def get_diff(exclude_files=None, staged=False):
-    """Get git diff of changes"""
+def get_diff(exclude_files=None, staged=False, base=None):
+    """Get git diff of changes
+    
+    Args:
+        exclude_files (list): Files to exclude from the diff
+        staged (bool): Whether to show staged changes
+        base (str): Optional base commit to diff against
+    """
     if exclude_files is None:
         exclude_files = ["package-lock.json", "yarn.lock"]
 
     cmd = ["diff", "--unified=10"]
+    
+    if base:
+        cmd.append(base)
+        
     if staged:
         cmd.append("--staged")
 
@@ -61,9 +71,24 @@ def get_diff(exclude_files=None, staged=False):
     return git_output(cmd)
 
 
-def get_staged_diff(exclude_files=None):
-    """Get git diff of staged changes"""
-    return get_diff(exclude_files, staged=True)
+def get_diff_for_commit_message(amend=False):
+    """
+    Get the appropriate diff for generating a commit message.
+    
+    Args:
+        amend (bool): If True, get the diff between HEAD^ and the index (staged),
+                     which includes both the commit being amended and any new staged changes.
+                     If False, get the staged diff.
+    
+    Returns:
+        str: The diff content
+    """
+    if amend:
+        # For amend, compare HEAD^ with staged changes
+        return get_diff(staged=True, base="HEAD^")
+    else:
+        # For regular commits, just get the staged diff
+        return get_diff(staged=True)
 
 
 def build_commit_args(is_amend=False, no_edit=False, file_path=None):

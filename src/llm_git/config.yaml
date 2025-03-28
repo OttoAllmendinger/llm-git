@@ -23,7 +23,20 @@ prompts:
     - Mostly professional, but can be casual
     - Avoid filler words
 
-  commit_message: |
+  extend_prompt: |
+    {old_prompt}
+    
+    ## Additional Instructions
+    {add_prompt}
+
+  extend_prompt_commit_metadata: |
+    {old_prompt}
+    ## Metadata
+    Make sure this trailer is at the end of your commit message:
+    Co-authored-by: llm-git <llm-git@ttll.de>
+
+  # Shared sections for commit messages
+  commit_intro: |
     {prompt[assistant_intro]}
     
     {prompt[writing_style]}
@@ -31,13 +44,38 @@ prompts:
     ## Context
     - Working directory: `{pwd}`
     - Current branch: `{branch}`
-    
+
+  commit_requirements: |
     ## Requirements
     - Use the "conventional commits" format
     - If the branchname includes a ticket number, use it in the commit message
+    - Make sure all trailers are at the end of the commit message and separated by a blank line
+
+  # Regular commit message template
+  commit_message: |
+    {prompt[commit_intro]}
+    
+    {prompt[commit_requirements]}
     
     ## Output
     Only output the commit message.
+
+  # Amend commit message template
+  commit_message_amend: |
+    {prompt[commit_intro]}
+    - You are amending an existing commit
+    
+    {prompt[commit_requirements]}
+    - Consider both the previous commit message and the new changes
+    - Maintain the same scope and type as the original commit if appropriate
+    
+    ## Previous Commit Message
+    ```
+    {previous_message}
+    ```
+    
+    ## Output
+    Only output the updated commit message.
 
   branch_name: |
     {prompt[assistant_intro]}

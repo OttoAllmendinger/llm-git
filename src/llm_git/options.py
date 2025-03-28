@@ -32,3 +32,10 @@ def add_metadata_option(f):
         default=None,
         help="Add LLM-Git metadata to commit message as Co-Authored-By trailer",
     )(f)
+
+
+def extend_prompt_option(f):
+    return click.option(
+        "--extend-prompt", "-X",
+        help="Additional instructions to extend the prompt",
+    )(f)
