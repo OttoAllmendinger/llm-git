@@ -100,4 +100,6 @@ def build_commit_args(is_amend=False, no_edit=False, file_path=None):
         cmd.append("--edit")
     if file_path:
         cmd.extend(["-F", file_path])
+        # Add --cleanup=strip to remove comments and trailing spaces
+        cmd.append("--cleanup=strip")
     return cmd

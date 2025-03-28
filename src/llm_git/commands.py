@@ -23,7 +23,7 @@ from .config import merged_config
 from .commit_utils import extend_with_metadata
 
 
-def commit_command(no_edit, amend, model, add_metadata=None, extend_prompt=None):
+def commit_command(no_edit, amend, model, add_metadata=None, extend_prompt=None, include_prompt=False):
     """Generate commit message and commit changes"""
     
     # Get the appropriate diff for the commit message
@@ -65,6 +65,15 @@ def commit_command(no_edit, amend, model, add_metadata=None, extend_prompt=None)
     
     result = request.execute()
     msg = str(result)
+
+    # If include_prompt is True, add the commented-out prompt to the message
+    if include_prompt and not no_edit:
+        # Format the prompt as comments (each line starting with #)
+        commented_prompt = "\n".join(f"# {line}" for line in system_prompt.split("\n"))
+        # Add a separator
+        prompt_section = f"\n\n# ----- LLM PROMPT (WILL BE REMOVED) -----\n{commented_prompt}\n# ----- END LLM PROMPT -----\n"
+        # Append to the message
+        msg += prompt_section
 
     with temp_file_with_content(msg) as file_path:
         cmd = build_commit_args(

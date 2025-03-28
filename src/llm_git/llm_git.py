@@ -35,11 +35,18 @@ def register_commands(cli):
     @click.option("--amend", "--am", is_flag=True, help="Amend the previous commit")
     @add_metadata_option
     @extend_prompt_option
+    @click.option(
+        "--include-prompt",
+        is_flag=True,
+        default=False,
+        help="Include the LLM prompt (commented out) in the commit message file",
+        envvar="LLM_GIT_COMMIT_INCLUDE_PROMPT",
+    )
     @click.pass_context
-    def commit(ctx, no_edit, amend, add_metadata, extend_prompt):
+    def commit(ctx, no_edit, amend, add_metadata, extend_prompt, include_prompt):
         """Generate commit message and commit changes"""
         model = ctx.obj.get("model")
-        commit_command(no_edit, amend, model, add_metadata, extend_prompt)
+        commit_command(no_edit, amend, model, add_metadata, extend_prompt, include_prompt)
 
     @git_group.command()
     @click.argument("instructions")
