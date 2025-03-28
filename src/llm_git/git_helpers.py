@@ -1,5 +1,6 @@
 import json
 import subprocess
+from .config import merged_config
 
 
 def git_output(cmd, *args, **kwargs):
@@ -47,6 +48,28 @@ def get_merge_base(branch1, branch2):
     return git_output(["merge-base", branch1, branch2])
 
 
+def get_default_exclude_files():
+    """Get the default list of files to exclude from diffs and shows
+    
+    Returns:
+        list: Default files to exclude
+        
+    Raises:
+        Exception: If exclude_files is not found in the config
+    """
+    config = merged_config()
+    git_config = config.get("git", {})
+    
+    # Get exclude_files from config
+    exclude_files = git_config.get("exclude_files")
+    
+    # If the config doesn't have exclude_files, raise an exception
+    if exclude_files is None:
+        raise Exception("exclude_files not found in config")
+    
+    return exclude_files
+
+
 def get_diff(exclude_files=None, staged=False, base=None):
     """Get git diff of changes
     
@@ -56,7 +79,7 @@ def get_diff(exclude_files=None, staged=False, base=None):
         base (str): Optional base commit to diff against
     """
     if exclude_files is None:
-        exclude_files = ["package-lock.json", "yarn.lock"]
+        exclude_files = get_default_exclude_files()
 
     cmd = ["diff", "--unified=10"]
     
@@ -68,6 +91,55 @@ def get_diff(exclude_files=None, staged=False, base=None):
 
     for f in exclude_files:
         cmd.append(f":(exclude){f}")
+    return git_output(cmd)
+
+
+def git_show(commit="HEAD", exclude_files=None, format=None, oneline=False, **kwargs):
+    """Get git show output for a commit
+    
+    Args:
+        commit (str): The commit to show (default: HEAD)
+        exclude_files (list): Files to exclude from the output
+        format (str): Optional format string for git show (e.g. "%B", "%H", "fuller")
+        oneline (bool): Whether to use --oneline flag
+        **kwargs: Additional arguments to pass to git show
+        
+    Returns:
+        str: The git show output
+    """
+    if exclude_files is None:
+        exclude_files = get_default_exclude_files()
+
+    cmd = ["show"]
+    
+    # Add format if specified
+    if format:
+        cmd.append(f"--format={format}")
+    
+    # Add oneline flag if specified
+    if oneline:
+        cmd.append("--oneline")
+    
+    # Add unified diff context size
+    cmd.append("--unified=10")
+    
+    # Add the commit
+    cmd.append(commit)
+    
+    # Add exclude patterns
+    for f in exclude_files:
+        cmd.append(f":(exclude){f}")
+        
+    # Add any additional arguments
+    for key, value in kwargs.items():
+        if len(key) == 1:
+            cmd.append(f"-{key}")
+        else:
+            cmd.append(f"--{key.replace('_', '-')}")
+        
+        if value is not True:  # Skip value for boolean flags
+            cmd.append(str(value))
+            
     return git_output(cmd)
 
 

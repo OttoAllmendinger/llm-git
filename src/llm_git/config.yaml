@@ -12,6 +12,7 @@ terminal:
   # Whether to use syntax highlighting
   highlight: true
 
+
 prompts:
   # Prompts can reference earlier prompts using the {prompt[name]} syntax
 
@@ -200,3 +201,45 @@ prompts:
     ```
     {commit_details}
     ```
+
+git:
+  # Files to exclude from diffs and shows
+  exclude_files:
+    # Package lock files
+    - "package-lock.json"
+    - "yarn.lock"
+    - "pnpm-lock.yaml"
+    - "npm-shrinkwrap.json"
+    - "bun.lockb"
+
+    # Dependency directories
+    - "node_modules/"
+    - "vendor/"
+
+    # Generated files
+    - "dist/"
+    - "build/"
+
+    # Large data files
+    - "*.min.js"
+    - "*.min.css"
+
+    # Python virtual environments
+    - "venv/"
+    - ".venv/"
+    - "env/"
+
+    # Compiled Python files
+    - "__pycache__/"
+    - "*.pyc"
+
+    # Generated documentation
+    - "docs/_build/"
+
+    # Generated translations
+    - "*.mo"
+
+    # Database files
+    - "*.sqlite3"
+    - "*.db"
+

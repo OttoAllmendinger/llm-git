@@ -12,6 +12,7 @@ from .git_helpers import (
     git_interactive,
     get_origin_default_branch,
     get_merge_base,
+    git_show,
 )
 from .file_helpers import (
     temp_file_with_content,
@@ -40,7 +41,7 @@ def commit_command(no_edit, amend, model, add_metadata=None, extend_prompt=None,
     format_args = {}
     if amend:
         # Get the current commit message for amend
-        current_msg = git_output(["show", "--format=%B", "-s"])
+        current_msg = git_show(format="%B")
         prompt_template = prompts.commit_message_amend()
         format_args["previous_message"] = current_msg
     else:
@@ -136,7 +137,7 @@ def edit_rebase_todo_command(rebase_todo_path, no_edit, model, extend_prompt=Non
     # Get the commit details for context
     commit_details = ""
     for commit_hash in commit_hashes:
-        commit_details += git_output(["show", "--format=fuller", commit_hash]) + "\n\n"
+        commit_details += git_show(commit=commit_hash, format="fuller") + "\n\n"
     
     # Format the input data using the template
     input_data = {
@@ -229,7 +230,7 @@ def create_branch_command(commit_spec, preview, model, extend_prompt=None):
     if ".." in commit_spec:
         log = git_output(["log", "--oneline", commit_spec, "--format=fuller"])
     else:
-        log = git_output(["show", "--oneline", commit_spec, "--format=fuller"])
+        log = git_show(commit=commit_spec, format="fuller", oneline=True)
 
     request = LLMRequest(
         prompt=log,

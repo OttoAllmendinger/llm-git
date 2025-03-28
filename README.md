@@ -13,6 +13,7 @@ LLM Git provides a suite of commands that use AI to help with common Git tasks:
 - Write comprehensive PR descriptions
 - Analyze and describe staged changes
 - Generate fixes for your code
+- Improve interactive rebases with AI assistance
 
 ## Installation
 
@@ -37,22 +38,26 @@ llm git describe-staged
 
 # Generate changes to your code based on instructions
 llm git apply "fix the bugs in this code"
+
+# Perform an interactive rebase with AI assistance
+llm git rebase HEAD~5
 ```
 
 ## Commands
 
 ### Git Commands
 
-- `llm git [--model MODEL] commit [--no-edit] [--amend]` - Generate commit message and commit changes
-- `llm git [--model MODEL] create-branch [COMMIT_SPEC] [--preview]` - Generate branch name from commits and create it
-- `llm git [--model MODEL] describe-staged` - Describe staged changes with suggestions
-- `llm git [--model MODEL] apply INSTRUCTIONS [--cached]` - [BETA] Generate changes based on instructions (not fully functional yet)
-- `llm git [--model MODEL] add` - [BETA] Generate and stage fixes (not fully functional yet)
+- `llm git [--model MODEL] commit [--no-edit] [--amend] [--add-metadata] [--extend-prompt TEXT] [--include-prompt]` - Generate commit message and commit changes
+- `llm git [--model MODEL] rebase [--upstream BRANCH] [--no-edit] [--extend-prompt TEXT] [--onto BRANCH]` - Rebase the current branch with AI assistance
+- `llm git [--model MODEL] create-branch [COMMIT_SPEC] [--preview] [--extend-prompt TEXT]` - Generate branch name from commits and create it
+- `llm git [--model MODEL] describe-staged [--extend-prompt TEXT]` - Describe staged changes with suggestions
+- `llm git [--model MODEL] apply INSTRUCTIONS [--cached] [--extend-prompt TEXT]` - [BETA] Generate changes based on instructions (not fully functional yet)
+- `llm git [--model MODEL] add [--extend-prompt TEXT]` - [BETA] Generate and stage fixes (not fully functional yet)
 - `llm git dump-prompts` - Display all available prompts
 
 ### GitHub Commands
 
-- `llm github [--model MODEL] create-pr [--upstream BRANCH] [--no-edit]` - Generate PR description from commits
+- `llm github [--model MODEL] create-pr [--upstream BRANCH] [--no-edit] [--extend-prompt TEXT]` - Generate PR description from commits
 
 ## Prompts
 
@@ -129,3 +134,4 @@ llm git dump-prompts
 - `LLM_GIT_SHOW_PROMPTS=1` - Show prompts sent to the LLM
 - `LLM_GIT_ABORT=request` - Abort before sending request to LLM
 - `LLM_GIT_KEEP_TEMP_FILES=1` - Keep temporary files for debugging
+- `LLM_GIT_COMMIT_INCLUDE_PROMPT=1` - Include the LLM prompt (commented out) in the commit message file
