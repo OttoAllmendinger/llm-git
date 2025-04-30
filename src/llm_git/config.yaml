@@ -98,6 +98,26 @@ prompts:
     ## Output
     Only output the branch name and nothing else.
 
+  tag_name: |
+    {prompt[assistant_intro]}
+    
+    ## Task
+    Generate a suitable tag name and a concise tag message from the commit range.
+    
+    ## Format
+    Tag Name: Use semantic versioning (e.g., `v1.2.3`) or a descriptive name (e.g., `release-candidate-feature-x`). Consider the nature of the changes (fix, feature, breaking change) when deciding on the version bump or name.
+    Tag Message: Provide a brief summary of the changes included in this tag. Follow commit message conventions (imperative mood, concise).
+    
+    ## Output
+    Output the tag name on the first line.
+    Output the tag message on the subsequent lines, separated from the tag name by a single blank line.
+    Example:
+    v1.1.0
+    
+    feat: Add user authentication
+    
+    This release introduces user login and registration functionality.
+
   pr_description: |
     {prompt[assistant_intro]}
     
@@ -242,4 +262,3 @@ git:
     # Database files
     - "*.sqlite3"
     - "*.db"
-

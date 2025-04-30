@@ -1,12 +1,18 @@
+import os
 import json
 import subprocess
 from .config import merged_config
 
 
-def git_output(cmd, *args, **kwargs):
+def git_output(full_cmd, *args, **kwargs):
     """Run a git command and return its output"""
-    full_cmd = ["git"] + cmd
+    full_cmd = ["git"] + full_cmd
     full_cmd = [str(arg) for arg in full_cmd]
+
+    debug = os.environ.get("LLM_GIT_SHOW_COMMAND", "0") == "1"
+    if debug:
+        print(f"Running command: {' '.join(full_cmd)}")
+
     try:
         result = subprocess.run(
             full_cmd, check=True, capture_output=True, text=True, *args, **kwargs
@@ -46,6 +52,31 @@ def get_origin_default_branch():
 
 def get_merge_base(branch1, branch2):
     return git_output(["merge-base", branch1, branch2])
+
+
+def get_latest_tag():
+    """Get the most recent tag reachable from HEAD"""
+    try:
+        # --tags: Consider all tags, not just annotated ones
+        # --abbrev=0: Output the full tag name without abbreviation
+        # --always: If no tags are found, output the unique commit hash instead
+        # We check the output to see if it's a tag or just a commit hash fallback
+        tag_or_hash = git_output(["describe", "--tags", "--abbrev=0", "--always"])
+        
+        # Check if the output is actually a tag by seeing if it exists in the tag list
+        all_tags = git_output(["tag", "-l"]).splitlines()
+        if tag_or_hash in all_tags:
+            return tag_or_hash
+        else:
+            # No reachable tag found, describe returned a commit hash
+            return None
+            
+    except Exception as e:
+        # Handle cases where git describe fails (e.g., empty repo)
+        # Check if the error indicates no names found
+        if "fatal: No names found" in str(e):
+            return None
+        raise e
 
 
 def get_default_exclude_files():
@@ -175,3 +206,4 @@ def build_commit_args(is_amend=False, no_edit=False, file_path=None):
         # Add --cleanup=strip to remove comments and trailing spaces
         cmd.append("--cleanup=strip")
     return cmd
+

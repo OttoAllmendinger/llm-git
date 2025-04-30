@@ -13,6 +13,7 @@ from .git_helpers import (
     get_origin_default_branch,
     get_merge_base,
     git_show,
+    get_latest_tag, # Import the new helper
 )
 from .file_helpers import (
     temp_file_with_content,
@@ -248,6 +249,65 @@ def create_branch_command(commit_spec, preview, model, extend_prompt=None):
         click.echo(branch_name_result)
 
 
+def tag_command(commit_spec, preview, format_type, sign, model, extend_prompt=None):
+    """Generate a tag name and message from commits and optionally create an annotated tag"""
+    if commit_spec is None:
+        latest_tag = get_latest_tag()
+        if latest_tag:
+            commit_spec = f"{latest_tag}..HEAD"
+            click.echo(f"Using commit range from latest tag: {commit_spec}", err=True)
+        else:
+            # Fallback if no tags are found
+            default_branch = get_origin_default_branch()
+            merge_base = get_merge_base(default_branch, "HEAD")
+            commit_spec = f"{merge_base}..HEAD"
+            click.echo(f"No tags found. Using commit range from merge-base with {default_branch}: {commit_spec}", err=True)
+
+    if ".." in commit_spec:
+        # Use --no-merges to simplify the log for the LLM
+        log = git_output(["log", "--oneline", "--no-merges", commit_spec, "--format=fuller"])
+    else:
+        log = git_show(commit=commit_spec, format="fuller", oneline=True)
+
+    request = LLMRequest(
+        prompt=log,
+        system_prompt=prompts.tag_name().extend(extend_prompt).format(),
+        model_id=model,
+        stream=not preview,
+        formatter=markdown() # Keep markdown for potential formatting in message
+    )
+    result = request.execute()
+    
+    # Parse the result: first line is tag name, rest is message
+    output_lines = str(result).strip().split('\n', 1)
+    tag_name_result = output_lines[0].strip()
+    tag_message_result = output_lines[1].strip() if len(output_lines) > 1 else f"Tag {tag_name_result}" # Default message if none provided
+
+    if preview:
+        if format_type == 'name':
+            # Output only the tag name without a trailing newline
+            click.echo(tag_name_result, nl=False)
+        elif format_type == 'version':
+            # Output only the version part (remove leading 'v' if present)
+            version_part = tag_name_result
+            if version_part.startswith('v'):
+                version_part = version_part[1:]
+            click.echo(version_part, nl=False)
+        else:
+            # Default preview output (name and message)
+            click.echo(f"Tag Name:\n{tag_name_result}\n")
+            click.echo(f"Tag Message:\n{tag_message_result}")
+    else:
+        # Create the tag
+        cmd = ["tag"]
+        if sign:
+            cmd.append("-s") # Sign the tag
+        # Use -a for annotated tag and -m for message
+        cmd.extend(["-a", tag_name_result, "-m", tag_message_result])
+        git_output(cmd)
+        click.echo(f"Created tag '{tag_name_result}'")
+
+
 def describe_staged_command(model, extend_prompt=None):
     """Describe staged changes and suggest commit splits with syntax highlighting"""
     diff = get_diff(staged=True)
@@ -351,3 +411,10 @@ def create_pr_command(upstream, no_edit, model, extend_prompt=None):
                 body_file,
             ]
         )
+
+
+
+
+
+
+

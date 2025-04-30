@@ -18,6 +18,7 @@ from .commands import (
     create_pr_command, 
     rebase_command,
     edit_rebase_todo_command,
+    tag_command
 )
 
 
@@ -115,6 +116,25 @@ def register_commands(cli):
         """Dump all available prompts"""
         dump_prompts_command()
 
+    @git_group.command(name="tag")
+    @click.argument("commit_spec", required=False)
+    @click.option(
+        "--preview", is_flag=True, default=False, help="Only preview the tag name without creating it"
+    )
+    @click.option(
+        "--format", "format_type", type=click.Choice(['name', 'version']), default=None, 
+        help="When using --preview, specify the output format (name: full tag name, version: version part only)"
+    )
+    @click.option(
+        "-s", "--sign", is_flag=True, default=False, help="Create a GPG-signed tag"
+    )
+    @extend_prompt_option
+    @click.pass_context
+    def tag(ctx, commit_spec, preview, format_type, sign, extend_prompt):
+        """Generate a tag name from commits and optionally create it"""
+        model = ctx.obj.get("model")
+        tag_command(commit_spec, preview, format_type, sign, model, extend_prompt)
+
     @cli.group(name="github")
     @model_option
     @click.pass_context
@@ -132,3 +152,4 @@ def register_commands(cli):
         """Generate PR description from commits"""
         model = ctx.obj.get("model")
         create_pr_command(upstream, no_edit, model, extend_prompt)
+

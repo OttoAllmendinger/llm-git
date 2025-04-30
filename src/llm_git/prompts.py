@@ -231,6 +231,10 @@ class PromptFactory:
         """Generate a branch name based on provided parameters."""
         return PromptTemplate("branch_name", self)
 
+    def tag_name(self) -> PromptTemplate:
+        """Generate a tag name based on provided parameters."""
+        return PromptTemplate("tag_name", self)
+
     def pr_description(self) -> PromptTemplate:
         """Generate a PR description based on provided parameters."""
         return PromptTemplate("pr_description", self)
@@ -271,3 +275,4 @@ class PromptFactory:
 # Create a singleton instance for backward compatibility
 # Use lenient=True for backward compatibility with previous behavior
 prompts = PromptFactory(lenient=True)
+
