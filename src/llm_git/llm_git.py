@@ -128,12 +128,13 @@ def register_commands(cli):
     @click.option(
         "-s", "--sign", is_flag=True, default=False, help="Create a GPG-signed tag"
     )
+    @no_edit_option
     @extend_prompt_option
     @click.pass_context
-    def tag(ctx, commit_spec, preview, format_type, sign, extend_prompt):
+    def tag(ctx, commit_spec, preview, format_type, sign, no_edit, extend_prompt):
         """Generate a tag name from commits and optionally create it"""
         model = ctx.obj.get("model")
-        tag_command(commit_spec, preview, format_type, sign, model, extend_prompt)
+        tag_command(commit_spec, preview, format_type, sign, no_edit, model, extend_prompt)
 
     @cli.group(name="github")
     @model_option
@@ -152,4 +153,3 @@ def register_commands(cli):
         """Generate PR description from commits"""
         model = ctx.obj.get("model")
         create_pr_command(upstream, no_edit, model, extend_prompt)
-

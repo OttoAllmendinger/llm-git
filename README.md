@@ -53,6 +53,7 @@ llm git rebase HEAD~5
 - `llm git [--model MODEL] describe-staged [--extend-prompt TEXT]` - Describe staged changes with suggestions
 - `llm git [--model MODEL] apply INSTRUCTIONS [--cached] [--extend-prompt TEXT]` - [BETA] Generate changes based on instructions (not fully functional yet)
 - `llm git [--model MODEL] add [--extend-prompt TEXT]` - [BETA] Generate and stage fixes (not fully functional yet)
+- `llm git [--model MODEL] tag [COMMIT_SPEC] [--preview] [--format {name|version}] [-s|--sign] [--no-edit] [--extend-prompt TEXT]` - Generate tag name and message from commits and create an annotated tag
 - `llm git dump-prompts` - Display all available prompts
 
 ### GitHub Commands

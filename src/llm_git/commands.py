@@ -17,7 +17,7 @@ from .git_helpers import (
 )
 from .file_helpers import (
     temp_file_with_content,
-    edit_with_editor,
+    edit_with_editor, # Import edit_with_editor
 )
 from .llm_utils import LLMRequest
 from .terminal_format import console, markdown, syntax
@@ -249,7 +249,7 @@ def create_branch_command(commit_spec, preview, model, extend_prompt=None):
         click.echo(branch_name_result)
 
 
-def tag_command(commit_spec, preview, format_type, sign, model, extend_prompt=None):
+def tag_command(commit_spec, preview, format_type, sign, no_edit, model, extend_prompt=None):
     """Generate a tag name and message from commits and optionally create an annotated tag"""
     if commit_spec is None:
         latest_tag = get_latest_tag()
@@ -273,13 +273,16 @@ def tag_command(commit_spec, preview, format_type, sign, model, extend_prompt=No
         prompt=log,
         system_prompt=prompts.tag_name().extend(extend_prompt).format(),
         model_id=model,
-        stream=not preview,
+        stream=True, # Keep streaming for responsiveness during generation
         formatter=markdown() # Keep markdown for potential formatting in message
     )
     result = request.execute()
     
-    # Parse the result: first line is tag name, rest is message
-    output_lines = str(result).strip().split('\n', 1)
+    # Combine tag name and message for potential editing
+    generated_output = str(result).strip()
+    
+    # Parse the generated result initially
+    output_lines = generated_output.split('\n', 1)
     tag_name_result = output_lines[0].strip()
     tag_message_result = output_lines[1].strip() if len(output_lines) > 1 else f"Tag {tag_name_result}" # Default message if none provided
 
@@ -295,10 +298,19 @@ def tag_command(commit_spec, preview, format_type, sign, model, extend_prompt=No
             click.echo(version_part, nl=False)
         else:
             # Default preview output (name and message)
-            click.echo(f"Tag Name:\n{tag_name_result}\n")
-            click.echo(f"Tag Message:\n{tag_message_result}")
+            click.echo(f"Generated Tag Name:\n{tag_name_result}\n")
+            click.echo(f"Generated Tag Message:\n{tag_message_result}")
     else:
-        # Create the tag
+        # Allow editing unless --no-edit is specified
+        if not no_edit:
+            # Use the combined generated output for editing
+            edited_output = edit_with_editor(generated_output)
+            # Re-parse after editing
+            edited_lines = edited_output.strip().split('\n', 1)
+            tag_name_result = edited_lines[0].strip()
+            tag_message_result = edited_lines[1].strip() if len(edited_lines) > 1 else f"Tag {tag_name_result}"
+        
+        # Create the tag using the (potentially edited) name and message
         cmd = ["tag"]
         if sign:
             cmd.append("-s") # Sign the tag
@@ -411,6 +423,7 @@ def create_pr_command(upstream, no_edit, model, extend_prompt=None):
                 body_file,
             ]
         )
+
 
 
 
