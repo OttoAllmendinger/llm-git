@@ -18,7 +18,7 @@ LLM Git provides a suite of commands that use AI to help with common Git tasks:
 ## Installation
 
 ```bash
-llm install git+https://github.com/OttoAllmendinger/llm-git.git
+llm install llm-git
 ```
 
 ## Quick Usage
