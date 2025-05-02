@@ -2,6 +2,7 @@ import os
 import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional
+from deepmerge import always_merger
 
 
 def load_yaml_config(file_path):
@@ -62,9 +63,9 @@ def merged_config() -> Dict[str, Any]:
     result = global_config.copy()
 
     # Update with user config
-    result.update(user_config)
+    result = always_merger.merge(result, user_config)
 
     # Update with repo config
-    result.update(repo_config)
+    result = always_merger.merge(result, repo_config)
 
     return result

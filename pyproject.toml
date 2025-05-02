@@ -8,6 +8,7 @@ license = {text = "Apache-2.0"}
 dependencies = [
     "llm",
     "click",
+    "deepmerge",
     "pyyaml",
     "rich",
     "pygments"
