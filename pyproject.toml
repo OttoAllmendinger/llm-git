@@ -14,6 +14,10 @@ dependencies = [
     "pygments"
 ]
 
+[project.urls]
+Homepage = "https://github.com/OttoAllmendinger/llm-git"
+Repository = "https://github.com/OttoAllmendinger/llm-git"
+
 [project.optional-dependencies]
 test = [
     "pytest",
@@ -41,3 +45,4 @@ packages = ["llm_git"]
 [tool.ruff]
 line-length = 88
 target-version = "py39"
+
