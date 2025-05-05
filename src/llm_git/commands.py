@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import yaml
 from llm.utils import extract_fenced_code_block
 import click
 
@@ -340,6 +341,16 @@ def describe_staged_command(model, extend_prompt=None):
     request.execute()
 
 
+def dump_config_command():
+    """Dump the current merged configuration"""
+    config = merged_config()
+    # Use yaml.dump to format the config dictionary
+    config_yaml = yaml.dump(config, default_flow_style=False, sort_keys=False)
+    console.print("Current merged configuration:", style="bold green")
+    # Print with YAML syntax highlighting
+    console.print(syntax("yaml", line_numbers=False).render(config_yaml))
+
+
 def dump_prompts_command():
     """Dump all available prompts"""
     import inspect
@@ -423,11 +434,4 @@ def create_pr_command(upstream, no_edit, model, extend_prompt=None):
                 body_file,
             ]
         )
-
-
-
-
-
-
-
 

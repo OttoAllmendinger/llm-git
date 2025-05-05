@@ -18,7 +18,8 @@ from .commands import (
     create_pr_command, 
     rebase_command,
     edit_rebase_todo_command,
-    tag_command
+    tag_command,
+    dump_config_command,
 )
 
 
@@ -111,10 +112,16 @@ def register_commands(cli):
         model = ctx.obj.get("model")
         describe_staged_command(model, extend_prompt)
 
+    @git_group.command(name="dump-config")
+    def dump_config():
+        """Dump the current configuration"""
+        dump_config_command()
+
     @git_group.command(name="dump-prompts")
     def dump_prompts():
         """Dump all available prompts"""
         dump_prompts_command()
+
 
     @git_group.command(name="tag")
     @click.argument("commit_spec", required=False)
