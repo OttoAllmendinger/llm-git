@@ -14,11 +14,11 @@ from .git_helpers import (
     get_origin_default_branch,
     get_merge_base,
     git_show,
-    get_latest_tag, # Import the new helper
+    get_latest_tag,
 )
 from .file_helpers import (
     temp_file_with_content,
-    edit_with_editor, # Import edit_with_editor
+    edit_with_editor,
 )
 from .llm_utils import LLMRequest
 from .terminal_format import console, markdown, syntax
@@ -386,7 +386,6 @@ def dump_prompts_command():
             # Display the formatted prompt
             console.print(syntax("markdown", line_numbers=False).render(result))
         except Exception:
-            # console.print(f"[red]Error rendering prompt: {str(e)}[/red]")
             # print with stack trace
             console.print_exception()
 
